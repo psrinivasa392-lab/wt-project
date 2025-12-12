@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Faculty Workload Management System</title>
+
+  <style>
+    :root{
+      --accent:#2b7a78;
+      --muted:#6c757d;
+      --bg:#f6f8f9;
+      --card:#ffffff;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    body{
+      margin:0;
+      background:var(--bg);
+      color:#111;
+      padding:16px;
+      -webkit-font-smoothing:antialiased;
+    }
+    header{display:flex;align-items:center;gap:16px;margin-bottom:14px;}
+    header h1{margin:0;font-size:22px;color:var(--accent);}
+    .layout{display:grid;grid-template-columns:320px 1fr;gap:16px;}
+    .card{background:var(--card);border-radius:8px;padding:14px;box-shadow:0 1px 4px rgba(16,24,40,0.06);}
+    nav button{display:block;width:100%;text-align:left;padding:10px;border-radius:6px;border:1px solid #e6e9eb;background:transparent;margin-bottom:8px;cursor:pointer;}
+    nav button.active{background:linear-gradient(90deg,var(--accent),#3aa6a3);color:white;border:none;}
+    form .row{display:flex;gap:8px;margin-bottom:8px;}
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px;}
+    input[type="text"], select, input[type="number"]{width:100%;padding:8px;border-radius:6px;border:1px solid #e6e9eb;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th,td{padding:8px;border-bottom:1px solid #eef1f3;text-align:left;}
+    th{background:#fbfdfe;font-weight:600;}
+    .muted{color:var(--muted);font-size:13px;}
+    .btn{display:inline-block;padding:8px 10px;border-radius:6px;border:none;cursor:pointer;}
+    .btn-primary{background:var(--accent);color:#fff;}
+    .btn-danger{background:#e05656;color:#fff;}
+    .small{font-size:12px;padding:6px 8px;border-radius:6px;}
+    .flex{display:flex;gap:8px;align-items:center;}
+    .summary-card{display:flex;gap:12px;flex-wrap:wrap;}
+    .summary-item{background:#f8fdfd;padding:10px;border-radius:8px;min-width:160px;}
+    .table-wrapper{max-height:380px;overflow:auto;}
+    .mini{font-size:12px;color:var(--muted)}
+  </style>
+
+  <!-- jsPDF libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+</head>
+
+<body>
+
+  <!-- ================= HEADER WITH YOUR LOGO CODE ================= -->
+  <header style="display:flex;align-items:center;gap:16px;margin-bottom:14px;">
+      <img src="vignan_logo.jpeg" alt="Vignan Logo" style="height:65px;border-radius:4px;" />
+
+      <h1 style="margin:0;font-size:22px;color:#2b7a78;">
+          Faculty Workload Management System<br>
+          <span style="font-size:14px;color:#555;">
+              Vignan's Foundation for Science, Technology & Research
+          </span>
+      </h1>
+  </header>
+  <!-- =============================================================== -->
+
+  <div class="layout">
+
+    <!-- LEFT SIDEBAR -->
+    <div class="card">
+      <nav>
+        <button id="nav-home" class="active">Home</button>
+        <button id="nav-add-workload">Add Workload</button>
+        <button id="nav-view-workload">View Workload</button>
+      </nav>
+      <hr />
+
+      <div style="margin-top:8px;">
+        <strong>Quick actions</strong>
+        <div class="flex" style="margin-top:8px;">
+          <button id="btn-export" class="btn btn-primary small">Export Summary PDF</button>
+          <button id="btn-clear-all" class="btn small">Clear All</button>
+        </div>
+        <div class="footer-note">Data is saved in LocalStorage.</div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main" class="card">
+
+      <!-- HOME -->
+      <div id="view-home">
+        <h3>Home</h3>
+        <p class="muted">Use the left menu to add faculty and workloads.</p>
+
+        <h4>Faculty List</h4>
+        <div id="faculty-list-area" class="table-wrapper card" style="padding:10px;margin-top:8px;"></div>
+
+        <h4 style="margin-top:12px;">Snapshot</h4>
+        <div id="snapshot" class="summary-card" style="margin-top:8px;"></div>
+      </div>
+
+      <!-- ADD WORKLOAD -->
+      <div id="view-add-workload" style="display:none;">
+        <h3>Add Workload</h3>
+
+        <div style="display:flex;gap:12px;">
+
+          <!-- ADD FACULTY -->
+          <div style="flex:1;">
+            <div class="card">
+              <h4>Add Faculty</h4>
+              <form id="form-faculty">
+                <label>Full name</label>
+                <input id="fac-name" type="text" required />
+
+                <label>Designation</label>
+                <input id="fac-designation" type="text" />
+
+                <label>Department</label>
+                <input id="fac-dept" type="text" />
+
+                <button class="btn btn-primary" type="submit" style="margin-top:8px;">Add Faculty</button>
+              </form>
+            </div>
+
+            <div class="card" style="margin-top:12px;">
+              <h4>Add Subject / Workload</h4>
+              <form id="form-subject">
+                <label>Assign to faculty</label>
+                <select id="select-faculty"></select>
+
+                <label>Subject name</label>
+                <input id="sub-name" type="text" />
+
+                <div class="row">
+                  <div style="flex:1;">
+                    <label>Lecture hrs/week</label>
+                    <input id="lecture-hrs" type="number" value="3" step="0.5" />
+                  </div>
+                  <div style="flex:1;">
+                    <label>Tutorial hrs/week</label>
+                    <input id="tutorial-hrs" type="number" value="0" step="0.5" />
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div style="flex:1;">
+                    <label>Lab hrs/week</label>
+                    <input id="lab-hrs" type="number" value="0" step="0.5" />
+                  </div>
+                  <div style="flex:1;">
+                    <label>Sections</label>
+                    <input id="sections" type="number" value="1" min="1" />
+                  </div>
+                </div>
+
+                <button class="btn btn-primary" type="submit" style="margin-top:8px;">Add Subject</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- WORKLOAD TABLE -->
+          <div style="flex:1.2;">
+            <div class="card">
+              <h4>Selected Faculty Workload</h4>
+
+              <label>Select faculty</label>
+              <select id="view-faculty-select"></select>
+
+              <div class="table-wrapper" style="max-height:300px;margin-top:8px;">
+                <table id="workload-table">
+                  <thead>
+                    <tr>
+                      <th>Subject</th><th>Lec</th><th>Tut</th><th>Lab</th><th>Sec</th><th>Total</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+
+              <div style="margin-top:10px;display:flex;justify-content:space-between;">
+                <span class="muted">Total hrs/week: <strong id="selected-total">0</strong></span>
+                <button id="btn-delete-selected" class="btn small">Delete subject</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- VIEW WORKLOAD SUMMARY -->
+      <div id="view-view-workload" style="display:none;">
+        <h3>Workload Summary</h3>
+        <p class="muted">Useful for HOD review.</p>
+
+        <div class="card table-wrapper" style="padding:0;margin-top:12px;">
+          <table id="summary-table">
+            <thead>
+              <tr>
+                <th>Faculty</th><th>Designation</th><th>Dept</th>
+                <th>#Subjects</th><th>Total hrs/week</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer style="margin-top:25px;text-align:center;color:#6c757d;font-size:14px;">
+    <strong>Website done by:</strong><br>
+    G. Mahesh Babu – 251FD01016<br>
+    J. Chandu – 251FD01018<br>
+    P. Pavan Sai – 251FD01039
+  </footer>
+
+
+<script>
+/* LOCAL STORAGE */
+const STORAGE_KEY = 'fwms_data_v1';
+
+function loadData(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  return raw ? JSON.parse(raw) : { faculties: [] };
+}
+function saveData(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function uid(prefix='id'){ return prefix + "_" + Math.random().toString(36).slice(2,9); }
+
+/* CALCULATIONS */
+function calculateSubjectTotal(s){
+  return s.sections * (s.lecture + s.tutorial + s.lab);
+}
+function calculateFacultyTotal(f){
+  return f.subjects.reduce((a,s)=>a+calculateSubjectTotal(s),0);
+}
+
+/* RENDER FUNCTIONS */
+function renderFacultyLists(){
+  const data = loadData();
+  const select = document.getElementById('select-faculty');
+  const viewSelect = document.getElementById('view-faculty-select');
+  const area = document.getElementById('faculty-list-area');
+
+  select.innerHTML = '';
+  viewSelect.innerHTML = '';
+  area.innerHTML = '';
+
+  if(data.faculties.length === 0){
+    select.innerHTML = '<option>-- Add faculty first --</option>';
+    viewSelect.innerHTML = '<option>-- Add faculty first --</option>';
+    area.innerHTML = '<div class="muted">No faculty added yet.</div>';
+    return;
+  }
+
+  data.faculties.forEach(f=>{
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = f.name + " — " + f.designation;
+    select.appendChild(opt);
+
+    const o2 = opt.cloneNode(true);
+    viewSelect.appendChild(o2);
+
+    const div = document.createElement('div');
+    div.style.marginBottom = '10px';
+    div.innerHTML = `
+      <strong>${f.name}</strong>
+      <div class="mini">${f.designation} • ${f.dept}</div>
+      <div class="mini" style="margin-top:6px;">
+        Subjects: ${f.subjects.length} • Total hrs/week:
+        <strong>${calculateFacultyTotal(f)}</strong>
+      </div>
+    `;
+    area.appendChild(div);
+  });
+
+  updateSelectedFacultyWorkload();
+  renderSummaryTable();
+  renderSnapshot();
+}
+
+function renderSnapshot(){
+  const data = loadData();
+  const box = document.getElementById('snapshot');
+  box.innerHTML = "";
+
+  data.faculties.slice(0,4).forEach(f=>{
+    const div = document.createElement('div');
+    div.classList.add("summary-item");
+    div.innerHTML = `
+      <strong>${f.name}</strong>
+      <div class="mini">${f.designation} • ${f.dept}</div>
+      <div style="margin-top:6px;font-weight:bold;">${calculateFacultyTotal(f)} hrs/week</div>
+    `;
+    box.appendChild(div);
+  });
+}
+
+function updateSelectedFacultyWorkload(){
+  const data = loadData();
+  const id = document.getElementById('view-faculty-select').value;
+
+  const tbody = document.querySelector('#workload-table tbody');
+  tbody.innerHTML = '';
+
+  const fac = data.faculties.find(f=>f.id===id);
+  if(!fac){
+    document.getElementById('selected-total').textContent = "0";
+    return;
+  }
+
+  fac.subjects.forEach(sub=>{
+    const tr = document.createElement('tr');
+    tr.dataset.subId = sub.id;
+    tr.innerHTML = `
+      <td>${sub.name}</td>
+      <td>${sub.lecture}</td>
+      <td>${sub.tutorial}</td>
+      <td>${sub.lab}</td>
+      <td>${sub.sections}</td>
+      <td>${calculateSubjectTotal(sub)}</td>
+      <td><button class="btn small" onclick="removeSubject('${fac.id}','${sub.id}')">Delete</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('selected-total').textContent = calculateFacultyTotal(fac);
+}
+
+function renderSummaryTable(){
+  const data = loadData();
+  const tbody = document.querySelector('#summary-table tbody');
+  tbody.innerHTML = '';
+
+  data.faculties.forEach(f=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${f.name}</td>
+      <td>${f.designation}</td>
+      <td>${f.dept}</td>
+      <td>${f.subjects.length}</td>
+      <td>${calculateFacultyTotal(f)}</td>
+      <td>
+        <button class="btn small" 
+          onclick="alert('Faculty: ${f.name}\\nTotal Workload: ${calculateFacultyTotal(f)} hrs/week')">Details</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* CRUD */
+function addFaculty(name, des, dept){
+  const data = loadData();
+  data.faculties.push({
+    id: uid('fac'),
+    name, designation: des, dept,
+    subjects:[]
+  });
+  saveData(data);
+  renderFacultyLists();
+}
+
+function addSubjectToFaculty(id, sub){
+  const data = loadData();
+  const f = data.faculties.find(x=>x.id===id);
+  sub.id = uid('sub');
+  f.subjects.push(sub);
+  saveData(data);
+  renderFacultyLists();
+}
+
+function removeSubject(facId, subId){
+  const data = loadData();
+  const fac = data.faculties.find(f=>f.id===facId);
+  fac.subjects = fac.subjects.filter(s=>s.id!==subId);
+  saveData(data);
+  updateSelectedFacultyWorkload();
+  renderFacultyLists();
+}
+
+/* EXPORT PDF */
+async function exportSummaryToPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const data = loadData();
+
+  const rows = data.faculties.map(f=>[
+    f.name, f.designation, f.dept, f.subjects.length, calculateFacultyTotal(f)
+  ]);
+
+  doc.text("Faculty Workload Summary", 14, 14);
+
+  doc.autoTable({
+    head:[["Faculty","Designation","Dept","#Subjects","Total hrs/week"]],
+    body: rows,
+    startY: 20
+  });
+
+  doc.save("faculty_workload_summary.pdf");
+}
+
+/* EVENT LISTENERS */
+document.addEventListener("DOMContentLoaded", ()=>{
+
+  const navHome=document.getElementById('nav-home');
+  const navAdd=document.getElementById('nav-add-workload');
+  const navView=document.getElementById('nav-view-workload');
+
+  function clearActive(){ document.querySelectorAll("nav button").forEach(btn=>btn.classList.remove("active")); }
+  function show(id){
+    document.getElementById('view-home').style.display='none';
+    document.getElementById('view-add-workload').style.display='none';
+    document.getElementById('view-view-workload').style.display='none';
+    document.getElementById(id).style.display='block';
+  }
+
+  navHome.onclick=()=>{ clearActive(); navHome.classList.add("active"); show("view-home"); renderFacultyLists(); };
+  navAdd.onclick=()=>{ clearActive(); navAdd.classList.add("active"); show("view-add-workload"); renderFacultyLists(); };
+  navView.onclick=()=>{ clearActive(); navView.classList.add("active"); show("view-view-workload"); renderFacultyLists(); };
+
+  /* Initial load */
+  renderFacultyLists();
+
+  /* Add faculty form */
+  document.getElementById('form-faculty').onsubmit=e=>{
+    e.preventDefault();
+    addFaculty(
+      document.getElementById('fac-name').value,
+      document.getElementById('fac-designation').value,
+      document.getElementById('fac-dept').value
+    );
+    e.target.reset();
+  };
+
+  /* Add subject form */
+  document.getElementById('form-subject').onsubmit=e=>{
+    e.preventDefault();
+    const facId = document.getElementById('select-faculty').value;
+    addSubjectToFaculty(facId,{
+      name: document.getElementById('sub-name').value,
+      lecture:+document.getElementById('lecture-hrs').value,
+      tutorial:+document.getElementById('tutorial-hrs').value,
+      lab:+document.getElementById('lab-hrs').value,
+      sections:+document.getElementById('sections').value
+    });
+    e.target.reset();
+  };
+
+  document.getElementById('view-faculty-select').onchange = updateSelectedFacultyWorkload;
+
+  document.getElementById('btn-export').onclick = exportSummaryToPDF;
+
+  document.getElementById('btn-clear-all').onclick=()=>{
+    if(confirm("Clear ALL stored data?")){
+      localStorage.removeItem(STORAGE_KEY);
+      renderFacultyLists();
+    }
+  };
+});
+</script>
+
+</body>
+</html>
